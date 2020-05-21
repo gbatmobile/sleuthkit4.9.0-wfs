@@ -57,6 +57,12 @@ extern "C" {
 #define TSK_USE_HFS 1
 #endif                          /*  */
 
+// set to 1 to open WFS0.4/5 file systems -- which is not fully tested
+#ifndef TSK_USE_WFS
+#define TSK_USE_WFS 1
+#endif                          /*  */
+
+
 #ifndef NBBY
 #define NBBY 8
 #endif                          /*  */
@@ -197,6 +203,8 @@ extern "C" {
     extern TSK_FS_INFO *hfs_open(TSK_IMG_INFO *, TSK_OFF_T,
         TSK_FS_TYPE_ENUM, uint8_t);
     extern TSK_FS_INFO *yaffs2_open(TSK_IMG_INFO *, TSK_OFF_T,
+        TSK_FS_TYPE_ENUM, uint8_t);
+    extern TSK_FS_INFO *wfsfs_open(TSK_IMG_INFO *, TSK_OFF_T,
         TSK_FS_TYPE_ENUM, uint8_t);
 
     /* Specific pool file system routines */

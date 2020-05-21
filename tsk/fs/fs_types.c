@@ -42,7 +42,10 @@ static FS_TYPES fs_type_table[] = {
     {"ntfs", TSK_FS_TYPE_NTFS, "NTFS"}, // NTFS == NTFS_DETECT 
     {"fat", TSK_FS_TYPE_FAT_DETECT, "FAT (Auto Detection)"},
     {"ext", TSK_FS_TYPE_EXT_DETECT, "ExtX (Auto Detection)"},
-    {"iso9660", TSK_FS_TYPE_ISO9660, "ISO9660 CD"}, // ISO9660 == DETECT
+    {"iso9660", TSK_FS_TYPE_ISO9660_DETECT, "ISO9660 CD"},
+#if TSK_USE_WFS
+    {"wfs", TSK_FS_TYPE_WFS_DETECT, "WFS0.4/5"},
+#endif
 #if TSK_USE_HFS
     {"hfs", TSK_FS_TYPE_HFS_DETECT, "HFS+ (Auto Detection)"},
 #endif

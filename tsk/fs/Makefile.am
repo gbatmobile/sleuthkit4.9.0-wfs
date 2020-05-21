@@ -8,6 +8,7 @@ libtskfs_la_SOURCES  = tsk_fs_i.h fs_inode.c fs_io.c fs_block.c fs_open.c \
     fs_parse.c fs_file.c \
     unix_misc.c nofs_misc.c \
     ffs.c ffs_dent.c ext2fs.c ext2fs_dent.c ext2fs_journal.c \
+    wfsfs.c wfsfs_dent.c \
     fatfs.c fatfs_meta.c fatfs_dent.cpp \
     fatxxfs.c fatxxfs_meta.c fatxxfs_dent.c \
     exfatfs.c exfatfs_meta.c exfatfs_dent.c \

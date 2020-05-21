@@ -820,6 +820,9 @@ extern "C" {
         TSK_FS_TYPE_HFS_LEGACY= 0x00008000,   ///< HFS file system
         TSK_FS_TYPE_APFS = 0x00010000, ///< APFS file system
         TSK_FS_TYPE_APFS_DETECT = 0x00010000, ///< APFS auto detection
+        TSK_FS_TYPE_WFS_04 = 0x00020000, ///< WFS 0.4
+        TSK_FS_TYPE_WFS_05 = 0x00040000, ///< WFS 0.5
+        TSK_FS_TYPE_WFS_DETECT = 0x00060000, ///< WFS auto detection
         TSK_FS_TYPE_UNSUPP = 0xffffffff,        ///< Unsupported file system
     };
     /* NOTE: Update bindings/java/src/org/sleuthkit/datamodel/TskData.java
@@ -853,6 +856,14 @@ extern "C" {
     * is for a ExtX file system. */
 #define TSK_FS_TYPE_ISEXT(ftype) \
     (((ftype) & TSK_FS_TYPE_EXT_DETECT)?1:0)
+
+    /**
+    * \ingroup fslib
+    * Macro that takes a file system type and returns 1 if the type
+    * is for a ExtX file system. */
+#define TSK_FS_TYPE_ISWFS(ftype) \
+    (((ftype) & TSK_FS_TYPE_WFS_DETECT)?1:0)
+
 
     /**
     * \ingroup fslib
