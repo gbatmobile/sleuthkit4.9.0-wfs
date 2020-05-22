@@ -184,3 +184,14 @@ unit_tests/base/test_base
 #Test data folder
 
 tests/data
+
+# GBAT files for WFS0.4/5
+add-vars-tobuild.bat
+copy-to-iped-3.13.4.bat
+copy-to-iped-3.16.3.bat
+gbat-changes.txt
+remove-vars-tobuild.bat
+tools/pooltools/pstat
+tsk48.cbp
+tsk48.layout
+        tsk48.layout
