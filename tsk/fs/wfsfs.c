@@ -592,8 +592,8 @@ wfsfs_block_walk(TSK_FS_INFO * a_fs, TSK_DADDR_T a_start_blk,
             myflags |= TSK_FS_BLOCK_FLAG_AONLY;
 
         if (tsk_fs_block_get_flag(a_fs, fs_block, addr, myflags) == NULL) {
-            tsk_error_set_errstr2("ext2fs_block_walk: block %" PRIuDADDR,
-                addr);
+            tsk_error_set_errstr2("%s: block %" PRIuDADDR,
+                myname, addr);
             tsk_fs_block_free(fs_block);
             return 1;
         }
@@ -622,7 +622,7 @@ wfsfs_inode_walk(TSK_FS_INFO * fs,
     tsk_error_reset();
     tsk_error_set_errno(TSK_ERR_FS_UNSUPFUNC);
     tsk_error_set_errstr("inode_walk not implemented for WFS0.4/5");
-    return 1;
+    return TSK_ERR;
 }
 
 /* return 1 on error and 0 on success */
