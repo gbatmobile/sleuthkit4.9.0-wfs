@@ -37,8 +37,9 @@
 
 #define WFS_DBG 1
 #ifdef WFS_DBG
+
 void
-wfs_debug_print_buf(const char *msg, unsigned char *buf, int len)
+wfs_debug_print_buf(const char *msg, const uint8_t *buf, int len)
 {
     tsk_fprintf(stderr, msg);
     int i = 0;
@@ -478,10 +479,37 @@ wfsfs_load_attrs(TSK_FS_FILE * fs_file)
 TSK_FS_BLOCK_FLAG_ENUM
 wfsfs_block_getflags(TSK_FS_INFO * a_fs, TSK_DADDR_T a_addr)
 {
-    tsk_error_reset();
-    tsk_error_set_errno(TSK_ERR_FS_UNSUPFUNC);
-    tsk_error_set_errstr("block_getflags not implemented for WFS0.4/5\n");
-    return TSK_OK;
+    WFSFS_INFO* wfsfs = (WFSFS_INFO*) a_fs;
+    uint32_t s_blocks_per_frag = tsk_getu32(a_fs->endian,
+        wfsfs->sb.s_blocks_per_frag);
+    TSK_DADDR_T s_first_data_block = 
+        tsk_getu32(a_fs->endian, wfsfs->sb.s_first_data_block);
+    TSK_DADDR_T s_newest_data_block =
+        s_first_data_block +
+        s_blocks_per_frag *
+        (tsk_getu32(a_fs->endian, wfsfs->sb.s_index_last_frag) + 1) - 1;
+    TSK_DADDR_T s_oldest_data_block =
+        s_first_data_block +
+        s_blocks_per_frag *
+        tsk_getu32(a_fs->endian, wfsfs->sb.s_index_first_frag);
+    TSK_DADDR_T s_last_reserved_data_block =
+        s_first_data_block +
+        s_blocks_per_frag *
+        (tsk_getu32(a_fs->endian, wfsfs->sb.s_num_reserv_frags) + 1) - 1;
+
+    if (a_addr < s_first_data_block)
+        return TSK_FS_BLOCK_FLAG_META | TSK_FS_BLOCK_FLAG_ALLOC;
+
+    if (a_addr <= s_last_reserved_data_block)
+        return TSK_FS_BLOCK_FLAG_CONT | TSK_FS_BLOCK_FLAG_UNALLOC;
+
+    if (a_addr <= s_newest_data_block)
+        return TSK_FS_BLOCK_FLAG_CONT | TSK_FS_BLOCK_FLAG_ALLOC;
+
+    if (a_addr >= s_oldest_data_block)
+        return TSK_FS_BLOCK_FLAG_CONT | TSK_FS_BLOCK_FLAG_ALLOC;
+
+    return TSK_FS_BLOCK_FLAG_CONT | TSK_FS_BLOCK_FLAG_UNALLOC;
 }
 
 /* wfsfs_block_walk - block iterator
@@ -497,9 +525,90 @@ wfsfs_block_walk(TSK_FS_INFO * a_fs, TSK_DADDR_T a_start_blk,
     TSK_DADDR_T a_end_blk, TSK_FS_BLOCK_WALK_FLAG_ENUM a_flags,
     TSK_FS_BLOCK_WALK_CB a_action, void *a_ptr)
 {
+    char* myname = "wfsfs_block_walk";
+    TSK_FS_BLOCK* fs_block;
+    TSK_DADDR_T addr;
+
+    // clean up any error messages that are lying around
     tsk_error_reset();
-    tsk_error_set_errno(TSK_ERR_FS_UNSUPFUNC);
-    tsk_error_set_errstr("block_walk not implemented for WFS0.4/5");
+
+    /*
+     * Sanity checks.
+     */
+    if (a_start_blk < a_fs->first_block || a_start_blk > a_fs->last_block) {
+        tsk_error_reset();
+        tsk_error_set_errno(TSK_ERR_FS_WALK_RNG);
+        tsk_error_set_errstr("%s: start block: %" PRIuDADDR, myname,
+            a_start_blk);
+        return TSK_ERR;
+    }
+    if (a_end_blk < a_fs->first_block || a_end_blk > a_fs->last_block
+        || a_end_blk < a_start_blk) {
+        tsk_error_reset();
+        tsk_error_set_errno(TSK_ERR_FS_WALK_RNG);
+        tsk_error_set_errstr("%s: end block: %" PRIuDADDR, myname,
+            a_end_blk);
+        return TSK_ERR;
+    }
+
+    /* Sanity check on a_flags -- make sure at least one ALLOC is set */
+    if (((a_flags & TSK_FS_BLOCK_WALK_FLAG_ALLOC) == 0) &&
+        ((a_flags & TSK_FS_BLOCK_WALK_FLAG_UNALLOC) == 0)) {
+        a_flags |=
+            (TSK_FS_BLOCK_WALK_FLAG_ALLOC |
+                TSK_FS_BLOCK_WALK_FLAG_UNALLOC);
+    }
+    if (((a_flags & TSK_FS_BLOCK_WALK_FLAG_META) == 0) &&
+        ((a_flags & TSK_FS_BLOCK_WALK_FLAG_CONT) == 0)) {
+        a_flags |=
+            (TSK_FS_BLOCK_WALK_FLAG_CONT | TSK_FS_BLOCK_WALK_FLAG_META);
+    }
+
+    if ((fs_block = tsk_fs_block_alloc(a_fs)) == NULL) {
+        return TSK_ERR;
+    }
+
+    for (addr = a_start_blk; addr <= a_end_blk; addr++) {
+        int retval;
+        int myflags;
+
+        myflags = wfsfs_block_getflags(a_fs, addr);
+
+        // test if we should call the callback with this one
+        if ((myflags & TSK_FS_BLOCK_FLAG_META)
+            && (!(a_flags & TSK_FS_BLOCK_WALK_FLAG_META)))
+            continue;
+        else if ((myflags & TSK_FS_BLOCK_FLAG_CONT)
+            && (!(a_flags & TSK_FS_BLOCK_WALK_FLAG_CONT)))
+            continue;
+        else if ((myflags & TSK_FS_BLOCK_FLAG_ALLOC)
+            && (!(a_flags & TSK_FS_BLOCK_WALK_FLAG_ALLOC)))
+            continue;
+        else if ((myflags & TSK_FS_BLOCK_FLAG_UNALLOC)
+            && (!(a_flags & TSK_FS_BLOCK_WALK_FLAG_UNALLOC)))
+            continue;
+
+        if (a_flags & TSK_FS_BLOCK_WALK_FLAG_AONLY)
+            myflags |= TSK_FS_BLOCK_FLAG_AONLY;
+
+        if (tsk_fs_block_get_flag(a_fs, fs_block, addr, myflags) == NULL) {
+            tsk_error_set_errstr2("ext2fs_block_walk: block %" PRIuDADDR,
+                addr);
+            tsk_fs_block_free(fs_block);
+            return 1;
+        }
+
+        retval = a_action(fs_block, a_ptr);
+        if (retval == TSK_WALK_STOP) {
+            break;
+        }
+        else if (retval == TSK_WALK_ERROR) {
+            tsk_fs_block_free(fs_block);
+            return 1;
+        }
+    }
+
+    tsk_fs_block_free(fs_block);
     return TSK_OK;
 }
 
@@ -649,10 +758,19 @@ wfsfs_fsstat(TSK_FS_INFO * fs, FILE * hFile)
 
     tsk_fprintf(hFile, "\nDISK AREAS:\n");
     tsk_fprintf(hFile, "--------------------------------------------\n");
-    tsk_fprintf(hFile, "Index area start block: %" PRIu32 "\n",
-        tsk_getu32(fs->endian, sb->s_first_index_block));
-    tsk_fprintf(hFile, "Data area start block: %" PRIu32 "\n",
-        tsk_getu32(fs->endian, sb->s_first_data_block));
+    tsk_fprintf(hFile, "Block size (in bytes): %" PRIu32 "\n",
+        tsk_getu32(fs->endian, sb->s_block_size));
+    tsk_fprintf(hFile, "Superblock block: %" PRIu32 " (%" PRIu32 ")\n",
+        WFSFS_SBOFF / tsk_getu32(fs->endian, sb->s_block_size),
+        WFSFS_SBOFF);
+    tsk_fprintf(hFile, "Index area start block: %" PRIu32 " (%" PRIu32 ")\n",
+        tsk_getu32(fs->endian, sb->s_first_index_block),
+        tsk_getu32(fs->endian, sb->s_first_index_block) * 
+        tsk_getu32(fs->endian, sb->s_block_size));
+    tsk_fprintf(hFile, "Data area start block: %" PRIu32 " (%" PRIu32 ")\n",
+        tsk_getu32(fs->endian, sb->s_first_data_block),
+        tsk_getu32(fs->endian, sb->s_first_data_block) * 
+        tsk_getu32(fs->endian, sb->s_block_size));
 
     return 0;
 }
@@ -692,25 +810,30 @@ wfsfs_istat(TSK_FS_INFO * fs, TSK_FS_ISTAT_FLAG_ENUM istat_flags, FILE * hFile, 
         fs_meta = fs_file->meta;
     }
          
-    tsk_fprintf(hFile, "Video : %" PRIuINUM "\n", inum);
-    tsk_fprintf(hFile, "size: %" PRIdOFF "\n", fs_meta->size);
-    tsk_fprintf(hFile, "num of links: %d\n", fs_meta->nlink);
+    if (inum != fs->root_inum) {
+        tsk_fprintf(hFile, "Video : %" PRIuINUM "\n", inum);
+        tsk_fprintf(hFile, "size: %" PRIdOFF "\n", fs_meta->size);
+        tsk_fprintf(hFile, "#frags: %" PRIdOFF "\n", (fs_meta->size - 1) /
+            (tsk_getu32(fs->endian, wfsfs->sb.s_blocks_per_frag) *
+                tsk_getu32(fs->endian, wfsfs->sb.s_block_size)) + 1);
+        tsk_fprintf(hFile, "num of links: %d\n", fs_meta->nlink);
 
-    tsk_fprintf(hFile, "File Created:\t%s\n",
+        tsk_fprintf(hFile, "File Created:\t%s\n",
             tsk_fs_time_to_str(fs_meta->ctime, timeBuf));
-    tsk_fprintf(hFile, "File Modified:\t%s\n",
+        tsk_fprintf(hFile, "File Modified:\t%s\n",
             tsk_fs_time_to_str(fs_meta->mtime, timeBuf));
-
-    if ((inum != fs->root_inum) && 
-        (istat_flags & TSK_FS_ISTAT_RUNLIST)) {
-        tsk_fprintf(hFile, "\nFragments:\n");
-        const TSK_FS_ATTR *fs_attr_default =
-            tsk_fs_file_attr_get_type(fs_file,
-                TSK_FS_ATTR_TYPE_DEFAULT, 0, 0);
-        if (tsk_fs_attr_print(fs_attr_default, hFile)) {
-            tsk_fprintf(hFile, "\nError creating run lists\n");
-            tsk_error_print(hFile);
-            tsk_error_reset();
+        if (istat_flags & TSK_FS_ISTAT_RUNLIST) {
+            tsk_fprintf(hFile, "\nFragments (values in blocks of %" 
+                PRIu32 " bytes):\n",
+                        tsk_getu32(fs->endian, wfsfs->sb.s_block_size));
+            const TSK_FS_ATTR* fs_attr_default =
+                tsk_fs_file_attr_get_type(fs_file,
+                    TSK_FS_ATTR_TYPE_DEFAULT, 0, 0);
+            if (tsk_fs_attr_print(fs_attr_default, hFile)) {
+                tsk_fprintf(hFile, "\nError creating run lists\n");
+                tsk_error_print(hFile);
+                tsk_error_reset();
+            }
         }
     }
     else {

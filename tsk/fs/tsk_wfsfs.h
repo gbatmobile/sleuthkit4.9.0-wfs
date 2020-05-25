@@ -53,7 +53,8 @@ extern "C" {
 
 #define WFSFS_CAM_NUM(cam_id) ((cam_id + 2) / 4)
 
-time_t wfsfs_mktime(const uint8_t *wfs_time);
+    time_t wfsfs_mktime(const uint8_t* wfs_time);
+
     typedef struct {
         char h_fs_magic[6];
         char h_filler[504];
@@ -67,65 +68,73 @@ time_t wfsfs_mktime(const uint8_t *wfs_time);
         uint8_t s_filler1[16];
 
         uint8_t s_time_last_modification[4];
-                                            // timestamp of the last video stored in disk
+                                            // off:16 - timestamp of the last video stored 
+                                            // in disk.
                                             // In general this is one the fragment neaerst
                                             //   format: YYYYYYMMMMDDDDDHHHHHmmmmmmSSSSSS
 
         uint8_t s_time_newest_modification[4];
-                                            // timestamp of the first fragment stored in disk.
+                                            // off:20 -timestamp of the first fragment stored 
+                                            // in disk.
                                             // In general this fragment is stored just before
                                             // the fragments reserved to be overwritten in
                                             // following operation
                                             //    format: YYYYYYMMMMDDDDDHHHHHmmmmmmSSSSSS
 
-        uint8_t s_index_last_frag[4];       // number of the last (newest) fragment in a video
-        uint8_t s_index_first_frag[4];      // number of the first fragment (oldest) in a video
+        uint8_t s_index_last_frag[4];       // off:24 - number of the last (newest) fragment 
+                                            // in a video.
+        uint8_t s_index_first_frag[4];      // off:28 - number of the first fragment (oldest) 
+                                            // in a video.
 
-        uint8_t s_last_index_valid[4];      // last index/fragment in disk
+        uint8_t s_last_index_valid[4];      // off:32 - last index/fragment in disk
 
-        uint8_t s_time_oldest_creation[4];
+        uint8_t s_time_oldest_creation[4];  // off:36
                                             // timestamp of the first video (oldest) stored in disk.
                                             // In general, the first video right after ones
                                             // reserved to be overwritten in following operation.
                                             //    format: YYYYYYMMMMDDDDDHHHHHmmmmmmSSSSSS
 
-        uint8_t s_time_first_creation[4];
+        uint8_t s_time_first_creation[4];   // off:40
                                             // timestamp of the first fragment in disk
                                             // in general, the first fragment after
                                             // the reserved ones in the start of disk.
                                             //    format: YYYYYYMMMMDDDDDHHHHHmmmmmmSSSSSS
 
-        uint8_t s_block_size[4];            // block size in bytes (tipycally: 512 - one sector)
-        uint8_t s_blocks_per_frag[4];       // blocks per fragment
-        uint8_t s_filler2[4];               // Unknown - values identified: 0x00000000
-        uint8_t s_num_reserv_frags[4];      // Number of indexes/fragments in the beginning of fs not used
-        uint8_t s_filler3[4];               // Unknown - values identified: 0x00003100
+        uint8_t s_block_size[4];            // off:44 - block size in bytes 
+                                            //     (tipycally: 512 - one sector)
+        uint8_t s_blocks_per_frag[4];       // off:48 - blocks per fragment
+        uint8_t s_filler2[4];               // off:52 - Unknown - values identified: 0x00000000
+        uint8_t s_num_reserv_frags[4];      // off:56 - Number of indexes/fragments in the 
+                                            //      beginning of fs not used
+        uint8_t s_filler3[4];               // off:60 - Unknown - values identified: 0x00003100
 
-        uint8_t s_filler4[4];               // Unknown - values identified: 0x00000018
-        uint8_t s_first_index_block[4];     // first disk block in index area
-        uint8_t s_first_data_block[4];      // first disk block in data area
-        uint8_t s_total_indexes[4];         // Number of indixes (and fragments) in file system
-
-        uint8_t s_filler5[432];
+        uint8_t s_filler4[4];               // off:64 - Unknown - values identified: 0x00000018
+        uint8_t s_first_index_block[4];     // off:68 - first disk block in index area
+        uint8_t s_first_data_block[4];      // off:72 - first disk block in data area
+        uint8_t s_total_indexes[4];         // off:76 - Number of indexes (and fragments) in 
+                                            //      file system
+        uint8_t s_filler5[432];             // off:80
     } WFSFS_SB;
 
 /*
  * Inode
  */
     typedef struct {
-        uint8_t i_filler1[1],        /* u8 */
-                i_type_desc[1],      /* u8 */
-                i_numb_frag[2],      // Number of fragments in this file -  main descriptor (inode)
-                i_prev_frag[4],      /* u32 */
-                i_next_frag[4],      /* u32 */
-                i_time_start[4],     /* u32 */
-                i_time_end[4],       /* u32 */
-                i_filler2[2],
-                i_blks_in_last[2],   /* u16 */
-                i_main_frag[4],      /* u32 */
-                i_filler3[2],
-                i_frag_order[1],     /* u8 */
-                i_camera[1];         /* u8 */
+        uint8_t i_filler1[1],        /* off:0   */
+                i_type_desc[1],      /* off:1   */
+                i_numb_frag[2],      /* off:2 - */
+                                     //    Extra fragments in this file - inode (0x02 or 0x03).
+                                     //    Fragment number for continuation (0x01).
+                i_prev_frag[4],      /* off:4   */
+                i_next_frag[4],      /* off:8   */
+                i_time_start[4],     /* off:12  */
+                i_time_end[4],       /* off:16  */
+                i_filler2[2],        /* off:20  */
+                i_blks_in_last[2],   /* off:22  */
+                i_main_frag[4],      /* off:24  */
+                i_filler3[2],        /* off:28  */
+                i_frag_order[1],     /* off:30  */
+                i_camera[1];         /* off:31  */
     } WFSFS_INODE;
 
 /*
@@ -154,10 +163,11 @@ time_t wfsfs_mktime(const uint8_t *wfs_time);
     TSK_RETVAL_ENUM
         wfsfs_dir_open_meta(TSK_FS_INFO * a_fs, TSK_FS_DIR ** a_fs_dir,
             TSK_INUM_T a_addr);
-    void 
-        wfs_debug_print_buf(const char *msg,
-            unsigned char *buf, int len);
-    TSK_RETVAL_ENUM
+    void
+        wfs_debug_print_buf(const char* msg,
+            const uint8_t* buf, int len);
+
+        TSK_RETVAL_ENUM
         wfsfs_gen_root(WFSFS_INFO* wfsfs, TSK_INUM_T i_num);
 
 #ifdef __cplusplus
