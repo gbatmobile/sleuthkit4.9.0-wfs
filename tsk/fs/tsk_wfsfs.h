@@ -67,24 +67,24 @@ extern "C" {
     typedef struct {
         uint8_t s_filler1[16];
 
-        uint8_t s_time_last_modification[4];
+        uint8_t s_time_last_frag[4];
                                             // off:16 - timestamp of the last video stored 
-                                            // in disk.
+                                            // in the file system.
                                             // In general this is one the fragment neaerst
                                             //   format: YYYYYYMMMMDDDDDHHHHHmmmmmmSSSSSS
 
-        uint8_t s_time_newest_modification[4];
+        uint8_t s_time_first_frag[4];
                                             // off:20 -timestamp of the first fragment stored 
-                                            // in disk.
+                                            // in the file system.
                                             // In general this fragment is stored just before
                                             // the fragments reserved to be overwritten in
                                             // following operation
                                             //    format: YYYYYYMMMMDDDDDHHHHHmmmmmmSSSSSS
 
-        uint8_t s_index_last_frag[4];       // off:24 - number of the last (newest) fragment 
-                                            // in a video.
-        uint8_t s_index_first_frag[4];      // off:28 - number of the first fragment (oldest) 
-                                            // in a video.
+        uint8_t s_index_newest_frag[4];     // off:24 - number of the newest fragment 
+                                            // in the file system.
+        uint8_t s_index_oldest_frag[4];     // off:28 - number of the oldest fragment 
+                                            // in the file system.
 
         uint8_t s_last_index_valid[4];      // off:32 - last index/fragment in disk
 

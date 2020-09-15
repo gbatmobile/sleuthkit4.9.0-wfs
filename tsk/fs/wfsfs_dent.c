@@ -108,7 +108,7 @@ wfsfs_gen_root (WFSFS_INFO * wfsfs, TSK_INUM_T i_num)
     fs_meta->flags = TSK_FS_META_FLAG_ALLOC;
     fs_meta->atime = 0;
     fs_meta->ctime = wfsfs_mktime(wfsfs->sb.s_time_oldest_creation);
-    fs_meta->mtime = wfsfs_mktime(wfsfs->sb.s_time_newest_modification);
+    fs_meta->mtime = wfsfs_mktime(wfsfs->sb.s_time_first_frag);
     fs_meta->size = 0;
     fs_meta->seq = i_num;
     fs_meta->nlink = 1;

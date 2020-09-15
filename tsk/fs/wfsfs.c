@@ -487,11 +487,11 @@ wfsfs_block_getflags(TSK_FS_INFO * a_fs, TSK_DADDR_T a_addr)
     TSK_DADDR_T s_newest_data_block =
         s_first_data_block +
         s_blocks_per_frag *
-        (tsk_getu32(a_fs->endian, wfsfs->sb.s_index_last_frag) + 1) - 1;
+        (tsk_getu32(a_fs->endian, wfsfs->sb.s_index_newest_frag) + 1) - 1;
     TSK_DADDR_T s_oldest_data_block =
         s_first_data_block +
         s_blocks_per_frag *
-        tsk_getu32(a_fs->endian, wfsfs->sb.s_index_first_frag);
+        tsk_getu32(a_fs->endian, wfsfs->sb.s_index_oldest_frag);
     TSK_DADDR_T s_last_reserved_data_block =
         s_first_data_block +
         s_blocks_per_frag *
@@ -720,7 +720,7 @@ wfsfs_fsstat(TSK_FS_INFO * fs, FILE * hFile)
     tsk_fprintf(hFile, "First fragment creation: %s\n",
         (tmptime > 0) ? tsk_fs_time_to_str(tmptime, timeBuf) : "empty");
 
-    tmptime = wfsfs_mktime(sb->s_time_last_modification);
+    tmptime = wfsfs_mktime(sb->s_time_last_frag);
     tsk_fprintf(hFile, "Last fragment modification: %s\n",
         (tmptime > 0) ? tsk_fs_time_to_str(tmptime, timeBuf) : "empty");
 
@@ -728,7 +728,7 @@ wfsfs_fsstat(TSK_FS_INFO * fs, FILE * hFile)
     tsk_fprintf(hFile, "Oldest fragment creation: %s\n",
         (tmptime > 0) ? tsk_fs_time_to_str(tmptime, timeBuf) : "empty");
 
-    tmptime = wfsfs_mktime(sb->s_time_newest_modification);
+    tmptime = wfsfs_mktime(sb->s_time_first_frag);
     tsk_fprintf(hFile, "Newest Fragment modification: %s\n",
         (tmptime > 0) ? tsk_fs_time_to_str(tmptime, timeBuf) : "empty");
 
@@ -747,13 +747,13 @@ wfsfs_fsstat(TSK_FS_INFO * fs, FILE * hFile)
                         NULL);
 
     tsk_fprintf(hFile, "Newest fragment number: %" PRIu32 "\n",
-        tsk_getu32(fs->endian, sb->s_index_last_frag));
-    wfs_dump_inode(wfsfs, tsk_getu32(fs->endian, sb->s_index_last_frag),
+        tsk_getu32(fs->endian, sb->s_index_newest_frag));
+    wfs_dump_inode(wfsfs, tsk_getu32(fs->endian, sb->s_index_newest_frag),
                         NULL);
 
     tsk_fprintf(hFile, "Oldest fragment number: %" PRIu32 "\n",
-        tsk_getu32(fs->endian, sb->s_index_first_frag));
-    wfs_dump_inode(wfsfs, tsk_getu32(fs->endian, sb->s_index_first_frag),
+        tsk_getu32(fs->endian, sb->s_index_oldest_frag));
+    wfs_dump_inode(wfsfs, tsk_getu32(fs->endian, sb->s_index_oldest_frag),
                         NULL);
 
     tsk_fprintf(hFile, "\nDISK AREAS:\n");
