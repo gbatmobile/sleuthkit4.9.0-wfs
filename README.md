@@ -10,3 +10,8 @@ Galileu Batista
 and Unaldo Brito (this guy have made a great work in decoding WFS).
 
 gbatmobile at -gmail *com
+
+# [The binaries]
+
+If you jus want to use the TSK tools, there are binary in Releases.
+The java bindings will be released soon. 
