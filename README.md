@@ -7,6 +7,6 @@ This software should be used with care; I and a partner have decoded the filesys
 We have also implemented in Python a tool capable of extract videos. In some days, I will public that program. It is more convenient if you want just export videos using a GUI.
 
 Galileu Batista
-Unaldo Brito (this guy have made a great work in decoding WFS).
+and Unaldo Brito (this guy have made a great work in decoding WFS).
 
 gbatmobile at -gmail *com
